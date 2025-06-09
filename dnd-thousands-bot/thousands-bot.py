@@ -1,6 +1,13 @@
 import discord
 from discord.ext import commands
-from secret import DISCORD_BOT_TOKEN
+from dotenv import load_dotenv
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(BASE_DIR)
+dotenv_path = os.path.join(PARENT_DIR, ".env")
+load_dotenv(dotenv_path)
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -203,4 +210,4 @@ async def helpbot(ctx):
 
 ### === RUN THE BOT === ###
 
-bot.run(DISCORD_BOT_TOKEN) ## Replace this with your actual token
+bot.run(DISCORD_BOT_TOKEN)
