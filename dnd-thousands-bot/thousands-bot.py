@@ -31,8 +31,21 @@ school = {}
 
 def is_admin():
     def predicate(ctx):
-        return ctx.author.name.id == ADMIN_ID
+        return ctx.author.id == ADMIN_ID
     return check(predicate)
+
+### === ERROR CONTROL === ###
+
+def clean_input(s: str) -> str:
+    return s.strip('"').strip("'").title()
+
+@bot.event
+async def on_command_error(ctx, error):
+    from discord.ext.commands import CommandNotFound
+
+    if isinstance(error, CommandNotFound):
+        return  # silently ignore unknown commands
+    await ctx.send(f"⚠️ Error: {str(error)}")
 
 ### === LOAD AND SAVE FUNCTIONS === ###
 
@@ -84,8 +97,8 @@ async def showaudit(ctx, lines: int = 10):
 
 @bot.command()
 async def setitem(ctx, character: str, slot: str, *, item: str):
-    character = character.title()
-    slot = slot.title()
+    character = character.strip('"').title()
+    slot = slot.strip('"').title()
     if character not in inventory:
         inventory[character] = {}
     inventory[character][slot] = item
@@ -95,8 +108,8 @@ async def setitem(ctx, character: str, slot: str, *, item: str):
 
 @bot.command()
 async def getitem(ctx, character: str, slot: str):
-    character = character.title()
-    slot = slot.title()
+    character = character.strip('"').title()
+    slot = slot.strip('"').title()
     item = inventory.get(character, {}).get(slot)
     if item:
         await ctx.send(f"🎒 **{character}** has **{item}** in **{slot}**.")
@@ -105,8 +118,8 @@ async def getitem(ctx, character: str, slot: str):
 
 @bot.command()
 async def removeitem(ctx, character: str, slot: str):
-    character = character.title()
-    slot = slot.title()
+    character = character.strip('"').title()
+    slot = slot.strip('"').title()
 
     if character not in inventory or slot not in inventory[character]:
         await ctx.send(f"❌ No item found in **{slot}** for **{character}**.")
@@ -123,7 +136,7 @@ async def removeitem(ctx, character: str, slot: str):
 
 @bot.command()
 async def showinventory(ctx, character: str):
-    character = character.title()
+    character = character.strip('"').title()
     inv = inventory.get(character)
     if not inv:
         await ctx.send(f"📭 No inventory found for **{character}**.")
@@ -155,9 +168,9 @@ VALID_BRANCHES = [
 
 @bot.command()
 async def addperson(ctx, name: str, role: str, *, branch: str):
-    name = name.title()
-    role = role.title()
-    branch = branch.title()
+    name = name.strip('"').title()
+    role = role.strip('"').title()
+    branch = branch.strip('"').title()
 
     if role not in VALID_ROLES:
         await ctx.send("❌ Invalid role. Choose from:\n" + ", ".join(VALID_ROLES))
@@ -178,7 +191,7 @@ async def addperson(ctx, name: str, role: str, *, branch: str):
 
 @bot.command()
 async def removeperson(ctx, name: str):
-    name = name.title()
+    name = name.strip('"').title()
     if name in school:
         removed = school.pop(name)
         save_data()
@@ -190,7 +203,7 @@ async def removeperson(ctx, name: str):
 
 @bot.command()
 async def getperson(ctx, name: str):
-    name = name.title()
+    name = name.strip('"').title()
     info = school.get(name)
     if not info:
         await ctx.send(f"❌ No record found for **{name}**.")
@@ -199,7 +212,7 @@ async def getperson(ctx, name: str):
 
 @bot.command()
 async def getbranch(ctx, branch: str):
-    branch = branch.title()
+    branch = branch.strip('"').title()
     people = {name: data["role"] for name, data in school.items() if data["branch"] == branch}
     if not people:
         await ctx.send(f"❌ No people found in **{branch}** branch.")
@@ -209,8 +222,8 @@ async def getbranch(ctx, branch: str):
 
 @bot.command()
 async def movebranch(ctx, name: str, *, new_branch: str):
-    name = name.title()
-    new_branch = new_branch.title()
+    name = name.strip('"').title()
+    new_branch = new_branch.strip('"').title()
 
     if new_branch not in VALID_BRANCHES:
         await ctx.send("❌ Invalid branch. Choose from:\n" + ", ".join(VALID_BRANCHES))
@@ -244,16 +257,6 @@ async def showacademy(ctx):
         embed.add_field(name=branch, value="\n".join(sorted(members)), inline=False)
 
     await ctx.send(embed=embed)
-
-### === ERROR CONTROL === ###
-
-@bot.event
-async def on_command_error(ctx, error):
-    from discord.ext.commands import CommandNotFound
-
-    if isinstance(error, CommandNotFound):
-        return  # silently ignore unknown commands
-    await ctx.send(f"⚠️ Error: {str(error)}")
 
 ### === RELOAD COMMAND === ###
 
@@ -299,6 +302,16 @@ async def helpbot(ctx):
 
     embed.add_field(name="Allowed Roles", value=", ".join(VALID_ROLES), inline=False)
     embed.add_field(name="Allowed Branches", value=", ".join(VALID_BRANCHES), inline=False)
+
+    # Admin Commands (admin only)
+    embed.add_field(
+        name="Admin Commands (Admin Only)",
+        value=(
+            "`!showaudit [lines]` - Show last audit log entries (default 10 lines)\n"
+            "`!reload` - Reload data from disk\n"
+        ),
+        inline=False
+    )
 
     # Help
     embed.add_field(name="Other", value="`!helpbot` - Show this help message", inline=False)
